@@ -11,6 +11,17 @@ import {
 } from '@/utils/turnstile';
 import { specificProxyRequest } from '~/utils/proxy';
 import { sendJson } from '~/utils/sending';
+import puppeteer from 'puppeteer';
+
+let browser = null;
+
+async function getBrowser() {
+  if (!browser) {
+    browser = await puppeteer.launch({ headless: true });
+    console.log('Puppeteer initialized');
+  }
+  return browser;
+}
 
 export default defineEventHandler(async (event) => {
   // Handle preflight CORS requests
@@ -31,15 +42,15 @@ export default defineEventHandler(async (event) => {
   }
 
   // Parse destination URL
-  const destination = getQuery<{ destination?: string }>(event).destination;
+  // const destination = getQuery<{ destination?: string }>(event).destination;
+  const { destination, useBrowser } = getQuery<{destination?: string, useBrowser?: string}>(event);
   if (!destination) {
     return await sendJson({
       event,
       status: 200,
       data: {
-        message: `Proxy is working as expected (v${
-          useRuntimeConfig(event).version
-        })`,
+        message: `Proxy is working as expected (v${useRuntimeConfig(event).version
+          })`,
       },
     });
   }
@@ -54,7 +65,21 @@ export default defineEventHandler(async (event) => {
       },
     });
   }
+  if (useBrowser !== undefined) {
+    const browser = await getBrowser();
+    const page = await browser.newPage();
 
+    await page.goto(destination, { waitUntil: 'networkidle0' });
+
+    const content = await page.content();
+
+    await page.close();
+    await browser.close();
+
+    event.node.res.setHeader('Content-Type', 'text/html');
+    event.node.res.end(content);
+    return;
+  }
   // Read body and create token if needed
   const body = await getBodyBuffer(event);
   const token = await createTokenIfNeeded(event);
