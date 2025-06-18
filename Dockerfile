@@ -5,6 +5,7 @@ FROM base as build
 
 COPY package.json ./
 RUN npm install
+RUN npx puppeteer browsers install chrome
 COPY . .
 RUN npm run build
 
