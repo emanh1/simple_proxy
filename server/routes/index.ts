@@ -42,8 +42,9 @@ export default defineEventHandler(async (event) => {
   }
 
   // Parse destination URL
-  // const destination = getQuery<{ destination?: string }>(event).destination;
-  const { destination, useBrowser } = getQuery<{destination?: string, useBrowser?: string}>(event);
+  const destination = getQuery<{ destination?: string }>(event).destination;
+  const useBrowser = getHeader(event, 'x-use-browser') === 'true';
+  // const { destination, useBrowser } = getQuery<{destination?: string, useBrowser?: string}>(event);
   if (!destination) {
     return await sendJson({
       event,
@@ -65,7 +66,8 @@ export default defineEventHandler(async (event) => {
       },
     });
   }
-  if (useBrowser !== undefined) {
+
+  if (useBrowser === true) {
     const browser = await getBrowser();
     const page = await browser.newPage();
 
