@@ -77,6 +77,7 @@ export default defineEventHandler(async (event) => {
     await browser.close();
 
     event.node.res.setHeader('Content-Type', 'text/html');
+    event.node.res.setHeader('X-Proxy-Mode', 'browser');
     event.node.res.end(content);
     return;
   }
