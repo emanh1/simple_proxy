@@ -76,11 +76,13 @@ export default defineEventHandler(async (event) => {
     const content = await page.content();
 
     await page.close();
-    await browser.close();
-
+    
+    event.node.res.setHeader('Access-Control-Allow-Origin', '*');
     event.node.res.setHeader('Content-Type', 'text/html');
     event.node.res.setHeader('X-Proxy-Mode', 'browser');
+    
     event.node.res.end(content);
+    
     return;
   }
   // Read body and create token if needed
