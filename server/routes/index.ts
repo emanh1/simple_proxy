@@ -68,22 +68,53 @@ export default defineEventHandler(async (event) => {
   }
 
   if (useBrowser === true) {
-    const browser = await getBrowser();
-    const page = await browser.newPage();
+    let page = null;
+    try {
+      const allowedWaitUntil = ['networkidle2', 'domcontentloaded'];
 
-    await page.goto(destination, { waitUntil: 'networkidle0' });
+      const waitUntil = getHeader(event, 'x-browser-wait-until') ?? 'networkidle2';
 
-    const content = await page.content();
+      if (!allowedWaitUntil.includes(waitUntil)) {
+        return await sendJson({
+          event,
+          status: 400,
+          data: {
+            error: `Invalid waitUntil, only ${allowedWaitUntil.join(', ')}`
+          }
+        })
+      }
+      
+      const timeoutStr = getHeader(event, 'x-browser-timeout');
+      const timeout = timeoutStr && /^\d+$/.test(timeoutStr) ? parseInt(timeoutStr) : 30000;
 
-    await page.close();
-    
-    event.node.res.setHeader('Access-Control-Allow-Origin', '*');
-    event.node.res.setHeader('Content-Type', 'text/html');
-    event.node.res.setHeader('X-Proxy-Mode', 'browser');
-    
-    event.node.res.end(content);
-    
-    return;
+      const browser = await getBrowser();
+      page = await browser.newPage();
+
+      await page.goto(destination, { 
+        waitUntil: waitUntil as 'networkidle2' | 'domcontentloaded',
+        timeout
+      });
+
+      const content = await page.content();
+
+      await page.close();
+
+      event.node.res.setHeader('Access-Control-Allow-Origin', '*');
+      event.node.res.setHeader('Content-Type', 'text/html');
+      event.node.res.setHeader('X-Proxy-Mode', 'browser');
+
+      event.node.res.end(content);
+
+      return;
+    } catch (error) {
+      if (page) await page.close();
+      event.node.res.statusCode = 504;
+      event.node.res.setHeader('Content-Type', 'application/json');
+      event.node.res.end(JSON.stringify({
+        error: 'Puppeteer failed or timed out.',
+      }));
+      return;
+    }
   }
   // Read body and create token if needed
   const body = await getBodyBuffer(event);
