@@ -67,6 +67,7 @@ export default defineEventHandler(async (event) => {
 
   let page = null;
   try {
+    const then = Date.now();
     const browser = await getBrowser();
     page = await browser.newPage();
     const token = await createTokenIfNeeded(event);
@@ -95,7 +96,7 @@ export default defineEventHandler(async (event) => {
     const content = await page.content();
 
     await page.close();
-
+    if (process.env.REQ_DEBUG) console.log("[Browser] Took", Date.now()-then,'ms');
     event.node.res.setHeader('Access-Control-Allow-Origin', '*');
     event.node.res.setHeader('X-Proxy-Mode', 'browser');
     if (token) setTokenHeader(event, token);
