@@ -49,7 +49,11 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Destination required'
     }))
   }
-
+  if (process.env.REQ_DEBUG === 'true') console.log({
+    type: 'browser_request',
+    url: destination,
+    headers: getHeaders(event)
+  });
   // Check if allowed to make the request
   if (!(await isAllowedToMakeRequest(event))) {
     return await sendJson({
@@ -98,6 +102,7 @@ export default defineEventHandler(async (event) => {
     return await send(event, content, 'text/html');
   } catch (error) {
     if (page) await page.close();
+    console.log(error);
     event.node.res.statusCode = 504;
     return sendJson({event, status: 504, data: {error: 'Puppeteer failed or timed out'}})
   }

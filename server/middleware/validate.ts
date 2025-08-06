@@ -12,7 +12,6 @@ function isInternalHost(host: string) {
 
 export default defineEventHandler(async (event) => {
   const destination = getQuery<{ destination?: string }>(event).destination;
-  if (process.env.REQ_DEBUG === 'true') console.log(destination);
   if (destination) {
     let hostname: string;
     try {
